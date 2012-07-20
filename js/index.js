@@ -48,7 +48,9 @@ function init() {
 
   initScene();
 
-  g.postprocess = { enabled: true };
+  g.postprocess = {};
+  g.postprocess.enabled = true;
+  g.postprocess.depthMaterial = new THREE.MeshDepthMaterial();
   initPostprocessing();
 
   g.stats = new Stats();
@@ -67,7 +69,20 @@ function update() {
 
   // render
   g.renderer.clear();
+  
+  if (g.postprocess.enabled) {
+    // render depth buffer
+    g.scene.overrideMaterial = g.postprocess.depthMaterial;
+    g.renderer.render( g.scene, g.camera, g.postprocess.rtDepth, true );
 
+    // render from composer
+    g.composer.render(0.1);
+  }
+  else {
+    g.renderer.render( g.scene, g.camera );
+  }
+
+/*
   if (g.postprocess.enabled) {
 
     // render scene into texture
@@ -76,7 +91,7 @@ function update() {
 
     // render depth into texture
     g.scene.overrideMaterial = new THREE.MeshDepthMaterial();
-    g.renderer.render( g.scene, g.camera, g.postprocess.rtDepth, true  );
+    g.renderer.render( g.scene, g.camera, g.postprocess.rtDepth, true );
     //g.renderer.render( g.scene, g.camera );
 
     // render composite
@@ -84,7 +99,7 @@ function update() {
   }
   else 
     g.renderer.render( g.scene, g.camera );
-
+*/
   requestAnimationFrame(update);
 };
 
@@ -107,6 +122,39 @@ function animate() {
 }
 
 function initPostprocessing() {
+
+  // init depth buffer
+  var pars = { 
+    minFilter: THREE.LinearFilter, 
+    magFilter: THREE.LinearFilter, 
+    format: THREE.RGBFormat 
+  };
+  g.postprocess.rtDepth = new THREE.WebGLRenderTarget( g.width, g.height, pars );
+
+  // passes
+  var renderPass = new THREE.RenderPass( g.scene, g.camera );
+  var effectBloom = new THREE.BloomPass( 1.0 );
+  var effectScreen = new THREE.ShaderPass( THREE.ShaderExtras["screen"] );
+
+  // dof pass
+  g.postprocess.dof = new THREE.ShaderPass( Shaders["depthOfField"] );
+  g.postprocess.dof.uniforms[ "tDepth" ].texture = g.postprocess.rtDepth;
+  g.postprocess.dof.uniforms[ "focus" ].value = 1.0;
+  g.postprocess.dof.uniforms[ "maxblur" ].value = 2.0;
+  g.postprocess.dof.uniforms[ "h" ].value = 1.0/g.width;
+  g.postprocess.dof.uniforms[ "v" ].value = 1.0/g.height;
+
+  g.postprocess.dof.renderToScreen = true;
+
+  // composer
+  g.composer = new THREE.EffectComposer( g.renderer );
+  g.composer.addPass( renderPass );
+  g.composer.addPass( g.postprocess.dof );
+  // g.composer.addPass( effectBloom );
+  // g.composer.addPass( effectScreen );
+}
+
+function initPostprocessingDof() {
   g.postprocess.scene = new THREE.Scene();
 
   g.postprocess.camera = new THREE.OrthographicCamera( 
