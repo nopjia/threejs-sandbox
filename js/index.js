@@ -135,6 +135,7 @@ function initPostprocessing() {
   var renderPass = new THREE.RenderPass( g.scene, g.camera );
   var effectBloom = new THREE.BloomPass( 1.0 );
   var effectScreen = new THREE.ShaderPass( THREE.ShaderExtras["screen"] );
+  effectScreen.renderToScreen = true;
 
   // dof pass
   g.postprocess.dof = new THREE.ShaderPass( Shaders["depthOfField"] );
@@ -144,14 +145,12 @@ function initPostprocessing() {
   g.postprocess.dof.uniforms[ "h" ].value = 1.0/g.width;
   g.postprocess.dof.uniforms[ "v" ].value = 1.0/g.height;
 
-  g.postprocess.dof.renderToScreen = true;
-
   // composer
   g.composer = new THREE.EffectComposer( g.renderer );
   g.composer.addPass( renderPass );
   g.composer.addPass( g.postprocess.dof );
-  // g.composer.addPass( effectBloom );
-  // g.composer.addPass( effectScreen );
+  g.composer.addPass( effectBloom );
+  g.composer.addPass( effectScreen );
 }
 
 function initPostprocessingDof() {
