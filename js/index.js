@@ -6,25 +6,27 @@ c.FOG_NEAR = 10;
 c.FOG_FAR  = 200;
 
 g = {};
+g.width, g.height;
 g.container, g.renderer, g.scene, g.camera, g.controls
 g.composer, g.postprocess;
 
-g.height = window.innerHeight;
-g.width  = window.innerWidth;
-
 function init() {
+  // container
+  g.container = document.getElementById("container");
+  g.width  = window.innerWidth;
+  g.height = window.innerHeight;
+
+  // renderer
   g.renderer = new THREE.WebGLRenderer({ 
     clearAlpha: 1, 
     clearColor: 0x000000,
     antialias: true
   });
   g.renderer.setSize( g.width, g.height );
-  g.renderer.autoClear = false;
-
-  g.container = document.getElementById("container");
+  g.renderer.autoClear = false;  
   g.container.appendChild( g.renderer.domElement );
 
-  var ORIGIN = new THREE.Vector3();
+  // camera
   g.camera = new THREE.PerspectiveCamera(
     c.CAM_FOV, 
     g.width/g.height,
@@ -32,11 +34,13 @@ function init() {
     c.CAM_FAR
   );
   g.camera.position.set(0, 5, 10);
-  g.camera.lookAt(ORIGIN);
+  g.camera.lookAt(new THREE.Vector3());
 
+  // scene
   g.scene = new THREE.Scene();
   g.scene.add(g.camera);
 
+  // trackball controls
   g.controls = new THREE.TrackballControls(g.camera, g.container);
   g.controls.rotateSpeed = 1.0;
   g.controls.zoomSpeed = 1.2;
@@ -48,11 +52,13 @@ function init() {
 
   initScene();
 
+  // postprocessing 
   g.postprocess = {};
   g.postprocess.enabled = true;
   g.postprocess.depthMaterial = new THREE.MeshDepthMaterial();
   initPostprocessing();
 
+  // insert stats
   g.stats = new Stats();
   g.stats.domElement.style.position = 'absolute';
   g.stats.domElement.style.top = '0px';
@@ -71,11 +77,9 @@ function update() {
   g.renderer.clear();
   
   if (g.postprocess.enabled) {
-    // render depth buffer
     g.scene.overrideMaterial = g.postprocess.depthMaterial;
     g.renderer.render( g.scene, g.camera, g.postprocess.rtDepth, true );
 
-    // render from composer
     g.composer.render(0.1);
   }
   else {
@@ -86,13 +90,17 @@ function update() {
 };
 
 function onWindowResize(event) {
-  g.width = window.innerWidth;
+  g.width  = window.innerWidth;
   g.height = window.innerHeight;
 
   g.renderer.setSize( g.width, g.height );
 
   g.camera.aspect = g.width / g.height;
   g.camera.updateProjectionMatrix();
+
+  g.controls.screen.width = g.width;
+  g.controls.screen.height = g.height;
+  g.controls.radius = ( g.width + g.height ) / 4;
 
   if (g.postprocess.enabled) {
     g.composer.reset( new THREE.WebGLRenderTarget( g.width, g.height ) );
